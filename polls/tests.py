@@ -38,9 +38,17 @@ class QuestionModelTests(TestCase):
         self.assertIs(recent_question.was_published_recently(), True)
 
 
-def create_question(question_text, days):
+def create_have_choice_question(question_text, days):
     time = timezone.now() + datetime.timedelta(days=days)
-    return Question.objects.create(question_text=question_text, pub_date=time)
+    question = Question.objects.create(question_text=question_text, pub_date=time)
+    question.choice_set.create(choice_text='choice1', votes=0)
+    return question
+
+
+def create_no_choice_question(question_text, days):
+    time = timezone.now() + datetime.timedelta(days=days)
+    question = Question.objects.create(question_text=question_text, pub_date=time)
+    return question
 
 
 class QuestionIndexViewTests(TestCase):
@@ -51,7 +59,7 @@ class QuestionIndexViewTests(TestCase):
         self.assertQuerysetEqual(response.context['latest_question_list'], [])
 
     def test_past_question(self):
-        question = create_question(question_text='Past question.', days=-30)
+        question = create_have_choice_question(question_text='Past question.', days=-30)
         response = self.client.get(reverse('polls:index'))
         self.assertQuerysetEqual(
             response.context['latest_question_list'],
@@ -59,14 +67,14 @@ class QuestionIndexViewTests(TestCase):
         )
 
     def test_future_question(self):
-        create_question(question_text='Future question.', days=30)
+        create_have_choice_question(question_text='Future question.', days=30)
         response = self.client.get(reverse('polls:index'))
         self.assertContains(response, 'No polls are available.')
         self.assertQuerysetEqual(response.context['latest_question_list'], [])
 
     def test_future_question_and_past_question(self):
-        question = create_question(question_text='Past question.', days=-30)
-        create_question(question_text='Future question', days=30)
+        question = create_have_choice_question(question_text='Past question.', days=-30)
+        create_have_choice_question(question_text='Future question', days=30)
         response = self.client.get(reverse('polls:index'))
         self.assertQuerysetEqual(
             response.context['latest_question_list'],
@@ -74,8 +82,8 @@ class QuestionIndexViewTests(TestCase):
         )
 
     def test_two_past_question(self):
-        question1 = create_question(question_text='Past question1.', days=-30)
-        question2 = create_question(question_text='Past question2.', days=-5)
+        question1 = create_have_choice_question(question_text='Past question1.', days=-30)
+        question2 = create_have_choice_question(question_text='Past question2.', days=-5)
         response = self.client.get(reverse('polls:index'))
 
         self.assertQuerysetEqual(
@@ -83,16 +91,53 @@ class QuestionIndexViewTests(TestCase):
             [question1, question2],
         )
 
+    def test_no_choice_question(self):
+        create_no_choice_question(question_text='no choice question.', days=-1)
+        response = self.client.get(reverse('polls:index'))
+
+        self.assertContains(response, 'No polls are available.')
+        self.assertQuerysetEqual(response.context['latest_question_list'], [])
+
+    def test_have_choice_question(self):
+        question = create_have_choice_question(question_text='have choice question.', days=-1)
+        url = reverse('polls:index')
+        response = self.client.get(url)
+
+        self.assertContains(response, question.question_text)
+
+    def test_have_choice_question_and_no_choice_question(self):
+        have_choice_question = create_have_choice_question(question_text='have choice question.', days=-1)
+        create_no_choice_question(question_text='no choice question.', days=-1)
+        url = reverse('polls:index')
+        response = self.client.get(url)
+
+        self.assertQuerysetEqual(response.context['latest_question_list'],
+                                 [have_choice_question])
+
 
 class QuestionDetailViewTests(TestCase):
     def test_future_question(self):
-        future_question = create_question(question_text='Future question.', days=5)
+        future_question = create_have_choice_question(question_text='Future question.', days=5)
         url = reverse('polls:detail', args=(future_question.id,))
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
     def test_past_question(self):
-        past_question = create_question(question_text='Past question.', days=-5)
+        past_question = create_have_choice_question(question_text='Past question.', days=-5)
         url = reverse('polls:detail', args=(past_question.id,))
+        response = self.client.get(url)
+        self.assertContains(response, past_question.question_text)
+
+
+class QuestionResultViewTests(TestCase):
+    def test_future_question_vote_results(self):
+        future_question = create_have_choice_question(question_text='Future question.', days=5)
+        url = reverse('polls:results', args=(future_question.id,))
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_past_question_vote_results(self):
+        past_question = create_have_choice_question(question_text='Past question.', days=-5)
+        url = reverse('polls:results', args=(past_question.id,))
         response = self.client.get(url)
         self.assertContains(response, past_question.question_text)

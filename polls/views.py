@@ -34,7 +34,8 @@ class IndexView(generic.ListView):
 
     def get_queryset(self):
         return Question.objects.filter(
-            pub_date__lte=timezone.now()
+            pub_date__lte=timezone.now(),
+            choice__isnull=False
         ).order_by('pub_date')[:5]
 
 
@@ -51,6 +52,11 @@ class DetailView(generic.DetailView):
 class ResultView(generic.DetailView):
     model = Question
     template_name = 'polls/results.html'
+
+    def get_queryset(self):
+        return Question.objects.filter(
+            pub_date__lte=timezone.now()
+        )
 
 
 def vote(request, question_id):
