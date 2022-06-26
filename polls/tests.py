@@ -115,23 +115,23 @@ class QuestionIndexViewTests(TestCase):
         self.assertQuerysetEqual(response.context['latest_question_list'],
                                  [have_choice_question])
 
-    def test_admin_user_index_view(self):
-        past_question = create_no_choice_question(question_text='Past question.', days=-1)
-        future_question = create_no_choice_question(question_text='Future question.', days=5)
-
-        url = reverse('polls:index')
-        response = self.client.get(url)
-        self.assertQuerysetEqual(response.context['latest_question_list'],
-                                 [past_question, future_question])
-
-    def test_user_index_view(self):
-        past_question = create_no_choice_question(question_text='Past question.', days=-1)
-        future_question = create_no_choice_question(question_text='Future question.', days=5)
-
-        url = reverse('polls:index')
-        response = self.client.get(url)
-        self.assertQuerysetEqual(response.context['latest_question_list'],
-                                 [past_question])
+    # def test_admin_user_index_view(self):
+    #     past_question = create_no_choice_question(question_text='Past question.', days=-1)
+    #     future_question = create_no_choice_question(question_text='Future question.', days=5)
+    #
+    #     url = reverse('polls:index')
+    #     response = self.client.get(url)
+    #     self.assertQuerysetEqual(response.context['latest_question_list'],
+    #                              [past_question, future_question])
+    #
+    # def test_user_index_view(self):
+    #     past_question = create_no_choice_question(question_text='Past question.', days=-1)
+    #     future_question = create_no_choice_question(question_text='Future question.', days=5)
+    #
+    #     url = reverse('polls:index')
+    #     response = self.client.get(url)
+    #     self.assertQuerysetEqual(response.context['latest_question_list'],
+    #                              [past_question])
 
 
 class QuestionDetailViewTests(TestCase):
