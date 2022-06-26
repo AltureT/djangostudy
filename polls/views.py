@@ -36,7 +36,7 @@ class IndexView(generic.ListView):
         return Question.objects.filter(
             pub_date__lte=timezone.now(),
             choice__isnull=False
-        ).order_by('pub_date')[:5]
+        ).distinct().order_by('pub_date')[:5]
 
 
 class DetailView(generic.DetailView):
